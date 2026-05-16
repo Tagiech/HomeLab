@@ -1,0 +1,69 @@
+services:
+  stirling-pdf:
+    container_name: pdf
+    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:${VERSION:-1.5.0-fat}
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    expose:
+      - "8080"
+
+    volumes:
+      - pdf-trainingData:/usr/share/tessdata:nocopy # Required for extra OCR languages
+      - pdf-extraConfigs:/configs:nocopy
+      - pdf-customFiles:/customFiles:nocopy
+      - pdf-logs:/logs:nocopy
+      - pdf-pipeline:/pipeline:nocopy
+
+    networks:
+      - traefik-proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.pdf.tls=true"
+      - "traefik.http.routers.pdf.entrypoints=websecure"
+      - "traefik.http.routers.pdf.tls.certresolver=letsencrypt"
+
+      - "traefik.http.routers.pdf.rule=Host(`${PUBLIC_DOMAIN}`)"
+      - "traefik.http.services.pdf.loadbalancer.server.port=8080"
+
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+volumes:
+  pdf-trainingData:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_SERVICE_ROOT_DIR:-./StirlingPDF}/trainingData
+  pdf-extraConfigs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_SERVICE_ROOT_DIR:-./StirlingPDF}/extraConfigs
+  pdf-customFiles:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_SERVICE_ROOT_DIR:-./StirlingPDF}/customFiles
+  pdf-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_SERVICE_ROOT_DIR:-./StirlingPDF}/logs
+  pdf-pipeline:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_SERVICE_ROOT_DIR:-./StirlingPDF}/pipeline  
+
+networks:
+  traefik-proxy:
+    external: true

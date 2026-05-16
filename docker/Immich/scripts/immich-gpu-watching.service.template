@@ -1,0 +1,20 @@
+# Place at /etc/systemd/system/immich-gpu-watchdog.service
+# To enable: sudo systemctl daemon-reload; sudo systemctl enable --now immich-gpu-watchdog;
+# To check: ps axo pid,ni,cmd | grep immich-gpu-watchdog
+# To watch: watch systemctl status immich-gpu-watchdog
+
+[Unit]
+Description=Immich GPU watchdog (pause ML when Plex uses GPU)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/path/to/immich/manageGpu.sh # TODO: Update the path to point to your manageGpu.sh script location
+Restart=always
+RestartSec=5
+User=user # TODO: Update to dedicated user with minimal privileges
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

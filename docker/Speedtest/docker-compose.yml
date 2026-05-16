@@ -1,0 +1,30 @@
+services:
+    speedtest:
+        image: openspeedtest/latest:${VERSION:-v2.0.6}
+        container_name: speedtest
+        restart: unless-stopped
+
+        expose:
+            - "3000"
+
+        networks:
+            - traefik-proxy
+
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=traefik-proxy"
+            - "traefik.http.routers.speedtest.tls=true"
+            - "traefik.http.routers.speedtest.entrypoints=websecure"
+            - "traefik.http.routers.speedtest.tls.certresolver=letsencrypt"
+
+            - "traefik.http.routers.speedtest.rule=Host(`${PUBLIC_DOMAIN}`)"
+            - "traefik.http.services.speedtest.loadbalancer.server.port=3000"
+
+            - traefik.http.routers.speedtest.middlewares=authentik@docker
+            - traefik.http.middlewares.authentik.forwardauth.address=${AUTH_URI}
+            - traefik.http.middlewares.authentik.forwardauth.trustForwardHeader=true
+            - traefik.http.middlewares.authentik.forwardauth.authResponseHeaders=X-authentik-username,X-authentik-email,X-authentik-groups
+
+networks:
+    traefik-proxy:
+        external: true

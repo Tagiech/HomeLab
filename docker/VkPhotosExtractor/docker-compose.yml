@@ -1,0 +1,60 @@
+services:
+
+    vk-photos-extractor-backend:
+        image: ghcr.io/tagiech/vk-photos-extractor:${TAG}
+        container_name: vk-photos-extractor-backend
+        restart: unless-stopped
+
+        env_file:
+            - .env
+
+        expose:
+            - "5105"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=traefik-proxy"
+
+            - "traefik.http.routers.vkextractorbackend.rule=Host(`vkphotosextractor.tagiech.com`) && (PathPrefix(`/api`) || PathPrefix(`/swagger`))"
+            - "traefik.http.routers.vkextractorbackend.entrypoints=websecure"
+            - "traefik.http.routers.vkextractorbackend.tls=true"
+            - "traefik.http.services.vkextractorbackend.loadbalancer.server.port=5105"
+
+            - "traefik.http.routers.vkextractorbackend-web.rule=Host(`vkphotosextractor.tagiech.com`) && (PathPrefix(`/api`) || PathPrefix(`/swagger`))"
+            - "traefik.http.routers.vkextractorbackend-web.entrypoints=web"
+            - "traefik.http.routers.vkextractorbackend-web.middlewares=redirect-to-https"
+            - "traefik.http.routers.vkextractorbackend-web.priority=1"
+
+            - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+        networks:
+            - traefik-proxy
+
+    vk-photos-extractor-frontend:
+        image: ghcr.io/tagiech/vk-photos-extractor-frontend:${TAG}
+        container_name: vk-photos-extractor-frontend
+        restart: unless-stopped
+
+        expose:
+            - "80"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=traefik-proxy"
+
+            - "traefik.http.routers.vkextractorfrontend.rule=Host(`vkphotosextractor.tagiech.com`) && PathPrefix(`/`)"
+            - "traefik.http.routers.vkextractorfrontend.entrypoints=websecure"
+            - "traefik.http.routers.vkextractorfrontend.tls=true"
+            - "traefik.http.services.vkextractorfrontend.loadbalancer.server.port=80"
+
+            - "traefik.http.routers.vkextractorfrontend-web.rule=Host(`vkphotosextractor.tagiech.com`) && PathPrefix(`/`)"
+            - "traefik.http.routers.vkextractorfrontend-web.entrypoints=web"
+            - "traefik.http.routers.vkextractorfrontend-web.middlewares=redirect-to-https"
+            - "traefik.http.routers.vkextractorfrontend-web.priority=1"
+
+            - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+        networks:
+            - traefik-proxy
+
+networks:
+    traefik-proxy:
+        external: true

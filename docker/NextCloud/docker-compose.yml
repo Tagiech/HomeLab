@@ -1,0 +1,135 @@
+services:
+  nextcloud:
+    container_name: nextcloud
+    image: nextcloud:${NC_VERSION:-31.0.11-apache}
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    expose:
+      - "80"
+    
+    volumes:
+      - nextcloud-core:/var/www/html
+      - nextcloud-files:/var/www/html/data
+
+    networks:
+      - traefik-proxy
+      - postgres-network
+      - redis-network
+      - nextcloud_internal
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.nextcloud.tls=true"
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.tls.certresolver=letsencrypt"
+
+      - "traefik.http.routers.nextcloud.rule=Host(`${NC_PUBLIC_DOMAIN}`)"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  onlyoffice:
+    container_name: onlyoffice
+    image: onlyoffice/documentserver:${OO_VERSION:-9.1}
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-k", "http://localhost/healthcheck"]
+      interval: 30s
+      retries: 5
+      start_period: 60s
+      timeout: 10s
+    stdin_open: true
+    stop_grace_period: 60s
+
+    env_file: 
+      - .env
+
+    expose:
+      - "80"
+
+    volumes:
+       - onlyoffice-core:/var/www/onlyoffice/Data
+       - onlyoffice-files:/var/www/onlyoffice/Data/files
+       - onlyoffice-forgotten:/var/www/onlyoffice/Data/forgotten
+       - onlyoffice-logs:/var/log/onlyoffice
+
+    networks:
+      - traefik-proxy
+      - postgres-network
+      - rmq-network
+      - nextcloud_internal
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.onlyoffice.tls=true"
+      - "traefik.http.routers.onlyoffice.entrypoints=websecure"
+      - "traefik.http.routers.onlyoffice.tls.certresolver=letsencrypt"
+
+      - "traefik.http.routers.onlyoffice.rule=Host(`${OO_PUBLIC_DOMAIN}`)"
+      - "traefik.http.services.onlyoffice.loadbalancer.server.port=80"
+
+      - traefik.http.routers.onlyoffice.middlewares=onlyoffice-header
+
+      - traefik.http.middlewares.onlyoffice-header.headers.customRequestHeaders.X-Forwarded-Proto=https
+
+volumes:
+  nextcloud-core:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${NC_SSD_IMPORTANT_DATA_DIR:-./nextcloud}/nextcloud
+  nextcloud-files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${NC_HDD_IMPORTANT_DATA_DIR:-./nextcloud}/nextcloud
+
+  onlyoffice-core:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${OO_SSD_IMPORTANT_DATA_DIR:-./onlyoffice}/onlyoffice
+  onlyoffice-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${OO_HDD_DISPENSABLE_DATA_DIR:-./onlyoffice}/onlyoffice/logs
+  onlyoffice-forgotten:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${OO_HDD_DISPENSABLE_DATA_DIR:-./onlyoffice}/onlyoffice/forgotten
+  onlyoffice-files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${OO_HDD_DISPENSABLE_DATA_DIR:-./onlyoffice}/onlyoffice/files
+      
+
+networks:
+  traefik-proxy:
+    external: true
+
+  postgres-network:
+    external: true
+    
+  redis-network:
+    external: true
+
+  rmq-network:
+    external: true
+
+  nextcloud_internal:
+    driver: bridge

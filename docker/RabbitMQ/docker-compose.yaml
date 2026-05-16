@@ -1,0 +1,30 @@
+services:
+    rabbitmq:
+        container_name: rmq
+        image: rabbitmq:4.2.1
+        restart: unless-stopped
+
+        expose:
+            - '5672'
+
+        healthcheck:
+            test: ["CMD", "rabbitmq-diagnostics", "status"]
+            interval: 10s
+            retries: 3
+            start_period: 10s
+            timeout: 3s
+
+        env_file:
+            - .env
+
+        volumes:
+            - rmq-data:/var/lib/rabbitmq
+
+        networks:
+            - rmq-network
+volumes:
+    rmq-data:
+
+networks:
+    rmq-network:
+        external: true

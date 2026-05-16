@@ -1,0 +1,89 @@
+services:
+  auth-server:
+    container_name: auth-server
+    image: ghcr.io/goauthentik/server:${VERSION:-2026.2.1}
+    restart: unless-stopped
+    command: server
+
+    env_file:
+      - .env
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key is required}
+
+    expose:
+      - "9000"
+
+    volumes:
+      - auth-data:/data
+      - auth-templates:/templates
+
+    networks:
+      - traefik-proxy
+      - redis-network
+      - postgres-network
+      - auth-internal
+
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-proxy
+      - traefik.http.routers.auth.tls=true
+      - traefik.http.routers.auth.entrypoints=websecure
+      - traefik.http.routers.auth.tls.certresolver=letsencrypt
+
+      - traefik.http.routers.auth.rule=Host(`${PUBLIC_DOMAIN}`)
+      - traefik.http.services.auth.loadbalancer.server.port=9000
+
+  auth-worker:
+    container_name: auth-worker
+    image: ghcr.io/goauthentik/server:${VERSION:-2026.2.1}
+    restart: unless-stopped
+    command: worker
+    group_add:
+      - "990"
+
+    env_file:
+      - .env
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key is required}
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - auth-data:/data
+      - auth-certs:/certs
+      - auth-templates:/templates
+
+    networks:
+      - redis-network
+      - postgres-network
+      - auth-internal
+
+volumes:
+  auth-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_IMPORTANT_DATA_DIR:-./auth}/data
+  auth-certs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_IMPORTANT_DATA_DIR:-./auth}/certs
+  auth-templates:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_IMPORTANT_DATA_DIR:-./auth}/templates
+
+networks:
+  auth-internal:
+    driver: bridge
+
+  traefik-proxy:
+    external: true
+  postgres-network:
+    external: true
+  redis-network:
+    external: true

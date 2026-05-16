@@ -1,0 +1,74 @@
+services:
+  plex:
+    container_name: plex
+    image: plexinc/pms-docker:${VERSION:-1.42.2.10156-f737b826c}
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -fs http://localhost:32400/identity"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+
+    env_file:
+      - .env
+
+    volumes:
+      - plex-config:/config:nocopy
+      - plex-transcode:/transcode:nocopy
+      - plex-media:/data:nocopy
+    # ports:
+    #   - 8324:8324/tcp #used for plex companion api: LG/Tizen/Samsung/Google Cast
+    #   - 32469:32469/tcp
+    #   - 1900:1900/udp
+    #   - 32410:32410/udp
+    #   - 32412:32412/udp
+    #   - 32413:32413/udp
+    #   - 32414:32414/udp
+
+    # expose:
+    #   - "32400"
+
+    network_mode: host
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - gpu
+      
+    labels:
+      - "traefik.enable=true"
+      # - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.plex.tls=true"
+      - "traefik.http.routers.plex.entrypoints=websecure"
+      - "traefik.http.routers.plex.tls.certresolver=letsencrypt"
+
+      - "traefik.http.routers.plex.rule=Host(`${PUBLIC_DOMAIN}`)"
+      - "traefik.http.services.plex.loadbalancer.server.port=32400"
+
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+volumes:
+  plex-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_IMPORTANT_DATA_DIR:-./plex}/config
+  plex-transcode:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_DISPENSABLE_DATA_DIR:-./plex}/transcode
+
+  plex-media:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HDD_DISPENSABLE_DATA_DIR:-./plex}

@@ -1,0 +1,96 @@
+name: immich
+
+services:
+  immich-server:
+    container_name: immich-server
+    image: ghcr.io/immich-app/immich-server:${VERSION:-release}
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
+    expose:
+      - "2283"
+
+    volumes:
+      - immich-core:/data
+      - immich-thumbs:/data/thumbs
+      - /etc/localtime:/etc/localtime:ro
+
+    networks:
+      - traefik-proxy
+      - redis-network
+      - postgres-network
+      - immich-internal
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.immich.tls=true"
+      - "traefik.http.routers.immich.entrypoints=websecure"
+      - "traefik.http.routers.immich.tls.certresolver=letsencrypt"
+
+      - "traefik.http.routers.immich.rule=Host(`${PUBLIC_DOMAIN}`)"
+      - "traefik.http.services.immich.loadbalancer.server.port=2283"
+
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+
+  immich-machine-learning:
+    container_name: immich-ml
+    image: ghcr.io/immich-app/immich-machine-learning:${VERSION:-release}-cuda
+    restart: unless-stopped
+
+    env_file:
+      - .env
+    
+    volumes:
+      - model-cache:/cache
+
+    networks:
+      - immich-internal
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - compute
+                - utility
+
+
+volumes:
+  immich-core:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HDD_IMPORTANT_DATA_DIR:-./immich}/immich
+  immich-thumbs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_DISPENSABLE_DATA_DIR:-./immich}/immich/thumbs
+
+  model-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_IMPORTANT_DATA_DIR:-./immich}/immich/model-cache
+
+networks:
+  traefik-proxy:
+    external: true
+  redis-network:
+    external: true
+  postgres-network:
+    external: true
+  immich-internal:
+    driver: bridge

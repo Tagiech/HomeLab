@@ -1,0 +1,17 @@
+*.env
+*.log
+*.sql
+*.dump
+__pycache__/
+node_modules/
+certs/
+backups/
+StirlingPDF/
+*.key
+*.pem
+*.crt
+*.csr
+*.ext
+*.srl
+acme.json
+.idea/

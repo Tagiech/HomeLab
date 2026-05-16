@@ -1,0 +1,39 @@
+services:
+    onlogs:
+        container_name: logs
+        image: devforth/onlogs:${VERSION:-1.1.10}
+        restart: unless-stopped
+
+        env_file:
+          - .env
+        
+        expose:
+            - ${PORT:-8798}
+
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - /var/lib/docker/containers:/var/lib/docker/containers
+            - /etc/hostname:/etc/hostname
+            - onlogs-volume:/leveldb
+
+        networks:
+            - traefik-proxy
+
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=traefik-proxy"
+            - "traefik.http.routers.onlogs.tls=true"
+            - "traefik.http.routers.onlogs.entrypoints=websecure"
+            - "traefik.http.routers.onlogs.tls.certresolver=letsencrypt"
+
+            - "traefik.http.routers.onlogs.rule=Host(`${PUBLIC_DOMAIN}`)"
+            - "traefik.http.services.onlogs.loadbalancer.server.port=${PORT}"
+
+            - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+networks:
+  traefik-proxy:
+    external: true
+
+volumes:
+  onlogs-volume:

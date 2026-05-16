@@ -1,0 +1,63 @@
+services:
+  n8n:
+    container_name: n8n
+    restart: unless-stopped
+
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-nightly}
+        UID: ${PUID:-1000}
+        GID: ${PGID:-1000}
+
+    env_file:
+      - .env
+
+    environment:
+      - WEBHOOK_URL=https://${PUBLIC_DOMAIN}
+      - N8N_EDITOR_BASE_URL=https://${PUBLIC_DOMAIN}
+      - GENERIC_TIMEZONE=${TZ}
+
+    expose:
+      - ${N8N_PORT:-8678}
+
+    volumes:
+      - n8n-core:/home/node/.n8n:rwx
+      - n8n-files:/files:rwx
+
+    networks:
+      - traefik-proxy
+      - postgres-network
+      - xray-proxy
+
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-proxy
+      - traefik.http.routers.n8n.tls=true
+      - traefik.http.routers.n8n.entrypoints=websecure
+      - traefik.http.routers.n8n.tls.certresolver=letsencrypt
+
+      - traefik.http.routers.n8n.rule=Host(`${PUBLIC_DOMAIN}`)
+      - traefik.http.services.n8n.loadbalancer.server.port=${N8N_PORT:-8678}
+
+volumes:
+  n8n-core:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_SERVICE_ROOT_DIR:-./n8n}
+  n8n-files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SSD_SERVICE_ROOT_DIR:-./n8n}/files
+
+networks:
+  traefik-proxy:
+    external: true
+  postgres-network:
+    external: true
+  xray-proxy:
+    external: true
