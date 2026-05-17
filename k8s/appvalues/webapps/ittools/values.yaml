@@ -8,4 +8,4 @@ container:
   port: 80
 
 ingress:
-  subdomain: tools
+  subdomain: ittools

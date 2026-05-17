@@ -1,0 +1,15 @@
+name: pdf
+
+image:
+  repository: stirlingtools/stirling-pdf
+  tag: 2.10.1-fat
+
+container:
+  port: 8080
+
+ingress:
+  subdomain: pdf
+  
+env:
+  - name: SECURITY_ENABLELOGIN
+    value: "false"
