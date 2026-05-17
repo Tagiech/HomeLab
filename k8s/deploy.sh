@@ -8,9 +8,10 @@ fi
 
 APPNAME=$1
 APPTYPE=$2
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 helm upgrade --install "$APPNAME" \
-  ./charts/"$APPTYPE" \
-  -f globalvalues.yaml \
-  -f appvalues/"$APPTYPE"/"$APPNAME"/values.yaml \
+  "$SCRIPT_DIR/charts/$APPTYPE" \
+  -f "$SCRIPT_DIR/globalvalues.yaml" \
+  -f "$SCRIPT_DIR/appvalues/$APPTYPE/$APPNAME/values.yaml" \
   -n "$APPTYPE"
