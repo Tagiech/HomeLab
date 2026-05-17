@@ -1,0 +1,11 @@
+name: whoami
+
+image:
+  repository: traefik/whoami
+  tag: latest
+
+container:
+  port: 80
+
+ingress:
+  subdomain: whoami

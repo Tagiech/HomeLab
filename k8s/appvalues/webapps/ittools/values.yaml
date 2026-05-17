@@ -1,0 +1,11 @@
+name: ittools
+
+image:
+  repository: corentinth/it-tools
+  tag: nightly
+
+container:
+  port: 80
+
+ingress:
+  subdomain: tools
