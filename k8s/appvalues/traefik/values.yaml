@@ -45,7 +45,7 @@ env:
 persistence:
   enabled: true
   size: 1Gi
-  
+
 tlsStore:
   default:
     defaultGeneratedCert:
