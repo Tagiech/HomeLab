@@ -1,0 +1,11 @@
+name: speedtest
+
+image:
+  repository: openspeedtest/latest
+  tag: v2.0.6
+
+container:
+  port: 3000
+
+ingress:
+  subdomain: speedtest

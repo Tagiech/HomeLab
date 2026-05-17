@@ -1,0 +1,56 @@
+#helm upgrade traefik traefik/traefik -n traefik -f traefik/values.yaml
+
+deployment:
+  initContainers:
+    - name: volume-permissions
+      image: busybox:latest
+      command: ["sh"]
+      args:
+        - -c
+        - touch /data/acme.json && chmod 600 /data/acme.json
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  replicas: 1
+
+service:
+  type: LoadBalancer
+
+ports:
+  web:
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+additionalArguments:
+  - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
+  - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+  - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
+
+env:
+  - name: CF_DNS_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-dns-creds
+        key: api-token
+  - name: TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-dns-creds
+        key: api-email
+
+persistence:
+  enabled: true
+  size: 1Gi
+  
+tlsStore:
+  default:
+    defaultGeneratedCert:
+      resolver: letsencrypt
+      domain:
+        main: dev.tagiech.com
+        sans:
+          - "*.dev.tagiech.com"
