@@ -1,0 +1,17 @@
+name: redis
+
+image:
+  repository: docker.io/valkey/valkey
+  tag: 8@sha256:81db6d39e1bba3b3ff32bd3a1b19a6d69690f94a3954ec131277b9a26b95b3aa
+
+container:
+  port: 6379
+
+probes:
+  liveness:
+    exec:
+      command: ["redis-cli", "ping"]
+
+  readiness:
+    exec:
+      command: ["redis-cli", "ping"]

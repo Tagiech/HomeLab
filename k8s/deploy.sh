@@ -14,4 +14,4 @@ helm upgrade --install "$APPNAME" \
   "$SCRIPT_DIR/charts/$APPTYPE" \
   -f "$SCRIPT_DIR/globalvalues.yaml" \
   -f "$SCRIPT_DIR/appvalues/$APPTYPE/$APPNAME/values.yaml" \
-  -n "$APPTYPE"
+  -n "$APPTYPE" --create-namespace

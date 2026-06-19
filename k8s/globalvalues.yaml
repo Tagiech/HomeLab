@@ -1,2 +1,13 @@
 global:
   domain: dev.tagiech.com
+  probes:
+    livenessParams:
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 5
+    readinessParams:
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 5

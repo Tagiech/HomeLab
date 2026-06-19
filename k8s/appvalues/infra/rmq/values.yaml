@@ -1,0 +1,29 @@
+name: rmq
+
+image:
+  repository: rabbitmq
+  tag: 4.2.1
+
+container:
+  port: 5672
+
+env:
+  - name: RABBITMQ_DEFAULT_USER
+    valueFrom:
+      secretKeyRef:
+        name: rmq-creds
+        key: user
+  - name: RABBITMQ_DEFAULT_PASS
+    valueFrom:
+      secretKeyRef:
+        name: rmq-creds
+        key: password
+
+probes:
+  liveness:
+    exec:
+      command: ["rabbitmq-diagnostics", "status"]
+
+  readiness:
+    exec:
+      command: ["rabbitmq-diagnostics", "status"]
